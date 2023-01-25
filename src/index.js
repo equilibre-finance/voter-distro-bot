@@ -54,6 +54,11 @@ async function run() {
 }
 
 async function main() {
+    if( ! process.env.CONTRACT ){
+        return new Error(".env not found!");
+    }else{
+        green(`Contract: ${process.env.CONTRACT} RPC: ${process.env.RPC}`);
+    }
     await run();
     setInterval(run, 604800 * 1000 );
 }

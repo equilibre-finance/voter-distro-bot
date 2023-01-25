@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  nodejs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nodejs
+    container_name: voter-distro
+    restart: unless-stopped
