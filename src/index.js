@@ -28,15 +28,18 @@ const green = function () {
     console.log(chalk.green(...arguments))
 };
 
-async function run() {
-    const Web3 = require('web3');
-    const web3 = new Web3(process.env.RPC);
-    const wallet = web3.eth.accounts.privateKeyToAccount(process.env.PRIVATE_KEY_ADMIN);
-    const account = wallet.address;
-    web3.eth.accounts.wallet.add(wallet);
-    web3.eth.defaultAccount = account;
-    const abi = JSON.parse(fs.readFileSync('abi.js'));
-    const ctx = new web3.eth.Contract(abi, process.env.CONTRACT);
+const Web3 = require('web3');
+const web3 = new Web3(process.env.RPC);
+const wallet = web3.eth.accounts.privateKeyToAccount(process.env.PRIVATE_KEY_ADMIN);
+const account = wallet.address;
+web3.eth.accounts.wallet.add(wallet);
+web3.eth.defaultAccount = account;
+const voter_abi = JSON.parse(fs.readFileSync('voter-abi.js'));
+const ctx = new web3.eth.Contract(voter_abi, process.env.CONTRACT);
+const bribe_abi = JSON.parse(fs.readFileSync('bribe-abi.js'));
+const bribe = new web3.eth.Contract(bribe_abi, process.env.BRIBE);
+
+async function runTx() {
     const distroTx = ctx.methods.distro();
     const transaction = {
         to: process.env.CONTRACT,
@@ -53,6 +56,22 @@ async function run() {
 
 }
 
+let latestEpoch;
+async function run(){
+    const r = await web3.eth.getBlock("latest");
+    const timestamp = r.timestamp;
+    const epoch = await bribe.methods.getEpochStart(timestamp).call();
+    yellow(`timestamp=${timestamp} epoch=${epoch}`);
+    if( ! latestEpoch ){
+        yellow(` - set epoch to ${epoch}.`);
+        latestEpoch = epoch;
+    }else if( latestEpoch !== epoch ){
+        await runTx();
+        latestEpoch = epoch;
+    }else{
+        yellow(`- waiting epoch change...`);
+    }
+}
 async function main() {
     if( ! process.env.CONTRACT ){
         return new Error(".env not found!");
@@ -60,7 +79,7 @@ async function main() {
         green(`Contract: ${process.env.CONTRACT} RPC: ${process.env.RPC}`);
     }
     await run();
-    setInterval(run, 604800 * 1000 );
+    setInterval(run, 60 * 1000 );
 }
 
 main();
