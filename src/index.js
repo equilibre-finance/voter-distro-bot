@@ -35,11 +35,11 @@ const account = wallet.address;
 web3.eth.accounts.wallet.add(wallet);
 web3.eth.defaultAccount = account;
 const voter_abi = JSON.parse(fs.readFileSync('voter-abi.js'));
-const ctx = new web3.eth.Contract(voter_abi, process.env.CONTRACT);
+const voter = new web3.eth.Contract(voter_abi, process.env.CONTRACT);
 const bribe_abi = JSON.parse(fs.readFileSync('bribe-abi.js'));
-const bribe = new web3.eth.Contract(bribe_abi, process.env.BRIBE);
+const gauge_abi = JSON.parse(fs.readFileSync('gauge-abi.js'));
 
-async function runTx() {
+async function distro() {
     const distroTx = ctx.methods.distro();
     const transaction = {
         to: process.env.CONTRACT,
@@ -56,22 +56,79 @@ async function runTx() {
 
 }
 
+async function distribute(){
+    const length = await voter.methods.length().call();
+    if( length < 1 ){
+        return red(`Stop: no gauges in Voter: ${process.env.CONTRACT}`);
+    }
+    for (let i = 0; i < length; ++i) {
+        const poolAddress = await voter.methods.pools(i).call();
+        const gaugeAddress = await voter.methods.gauges(poolAddress).call();
+        yellow(`${i}) ${gaugeAddress}`);
+        try {
+            const distroTx = voter.methods.distribute(gaugeAddress);
+            const transaction = {
+                to: process.env.CONTRACT,
+                data: distroTx.encodeABI(),
+                gas: await distroTx.estimateGas()
+            };
+            const signedTx = await web3.eth.accounts.signTransaction(transaction, process.env.PRIVATE_KEY_ADMIN);
+            const tx = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+            green(` - ${tx.transactionHash}`);
+        }catch(e){
+            red(` - ${e.toString()}`);
+        }
+
+    }
+}
+
 let latestEpoch;
 async function run(){
     const r = await web3.eth.getBlock("latest");
     const timestamp = r.timestamp;
+    let bribe;
+    const length = await voter.methods.length().call();
+    if( length < 1 ){
+        return red(`Stop: no gauges in Voter: ${process.env.CONTRACT}`);
+    }
+    for (let i = 0; i < length; ++i) {
+        const poolAddress = await voter.methods.pools(i).call();
+        const gaugeAddress = await voter.methods.gauges(poolAddress).call();
+        const gauge = new web3.eth.Contract(gauge_abi, gaugeAddress);
+        const bribeAddress = await gauge.methods.internal_bribe().call();
+        yellow(`bribe=${bribeAddress} pool=${poolAddress} gauge=${gaugeAddress}`);
+        bribe = new web3.eth.Contract(bribe_abi, bribeAddress);
+        break;
+    }
+
+    if( ! bribe ){
+        return red(`Stop: invalid bribe contract.`);
+    }
+
     const epoch = await bribe.methods.getEpochStart(timestamp).call();
     yellow(`timestamp=${timestamp} epoch=${epoch}`);
     if( ! latestEpoch ){
         yellow(` - set epoch to ${epoch}.`);
         latestEpoch = epoch;
     }else if( latestEpoch !== epoch ){
-        await runTx();
+        await exec();
         latestEpoch = epoch;
     }else{
         yellow(`- waiting epoch change...`);
     }
 }
+
+async function exec(){
+    try{
+        await ctx.methods.distro().estimateGas();
+        green('* RUN distro:');
+        await distro();
+    }catch(e){
+        yellow('* RUN distribute:');
+        await distribute();
+    }
+}
+
 async function main() {
     if( ! process.env.CONTRACT ){
         return new Error(".env not found!");
