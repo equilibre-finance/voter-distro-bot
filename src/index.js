@@ -114,7 +114,7 @@ async function run(){
     if( ! latestEpoch ){
         yellow(` - set epoch to ${epoch}.`);
         latestEpoch = epoch;
-    //}else if( latestEpoch !== epoch ){
+    }else if( latestEpoch !== epoch ){
         await exec();
         latestEpoch = epoch;
     }else{
@@ -123,7 +123,6 @@ async function run(){
 }
 
 async function exec(){
-    return await distribute();
     try{
         await voter.methods.distro().estimateGas();
         green('* RUN distro:');
