@@ -123,6 +123,7 @@ async function run(){
 }
 
 async function exec(){
+    return await distribute();
     try{
         await voter.methods.distro().estimateGas();
         green('* RUN distro:');
@@ -130,7 +131,7 @@ async function exec(){
     }catch(e){
         yellow('* RUN distribute:');
         console.log(e);
-        // await distribute();
+        await distribute();
     }
 }
 
