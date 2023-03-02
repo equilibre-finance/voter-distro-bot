@@ -56,11 +56,13 @@ async function distro() {
 
 }
 
+let running = false;
 async function distribute(){
     const length = await voter.methods.length().call();
     if( length < 1 ){
         return red(`Stop: no gauges in Voter: ${process.env.CONTRACT}`);
     }
+    running = true;
     for (let i = 0; i < length; ++i) {
         const poolAddress = await voter.methods.pools(i).call();
         const gaugeAddress = await voter.methods.gauges(poolAddress).call();
@@ -78,12 +80,15 @@ async function distribute(){
         }catch(e){
             red(` - ${e.toString()}`);
         }
-
     }
+    running = false;
 }
 
 let latestEpoch;
 async function run(){
+    if( running ){
+        return yellow('Running...');
+    }
     const r = await web3.eth.getBlock("latest");
     const timestamp = r.timestamp;
     let bribe;
@@ -96,7 +101,6 @@ async function run(){
         const gaugeAddress = await voter.methods.gauges(poolAddress).call();
         const gauge = new web3.eth.Contract(gauge_abi, gaugeAddress);
         const bribeAddress = await gauge.methods.internal_bribe().call();
-        yellow(`bribe=${bribeAddress} pool=${poolAddress} gauge=${gaugeAddress}`);
         bribe = new web3.eth.Contract(bribe_abi, bribeAddress);
         break;
     }
