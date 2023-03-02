@@ -40,7 +40,7 @@ const bribe_abi = JSON.parse(fs.readFileSync('bribe-abi.js'));
 const gauge_abi = JSON.parse(fs.readFileSync('gauge-abi.js'));
 
 async function distro() {
-    const distroTx = ctx.methods.distro();
+    const distroTx = voter.methods.distro();
     const transaction = {
         to: process.env.CONTRACT,
         data: distroTx.encodeABI(),
@@ -124,7 +124,7 @@ async function run(){
 
 async function exec(){
     try{
-        await ctx.methods.distro().estimateGas();
+        await voter.methods.distro().estimateGas();
         green('* RUN distro:');
         await distro();
     }catch(e){
