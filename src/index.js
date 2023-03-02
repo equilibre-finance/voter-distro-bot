@@ -114,7 +114,7 @@ async function run(){
     if( ! latestEpoch ){
         yellow(` - set epoch to ${epoch}.`);
         latestEpoch = epoch;
-    }else if( latestEpoch !== epoch ){
+    //}else if( latestEpoch !== epoch ){
         await exec();
         latestEpoch = epoch;
     }else{
@@ -129,7 +129,8 @@ async function exec(){
         await distro();
     }catch(e){
         yellow('* RUN distribute:');
-        await distribute();
+        console.log(e);
+        // await distribute();
     }
 }
 
