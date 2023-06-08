@@ -55,11 +55,21 @@ async function distro() {
     }
 }
 
+let baseNonce;
+let nonceOffset = 0;
+function getNonce() {
+    return baseNonce.then((nonce) => (nonce + (nonceOffset++)));
+}
+
 let running = false;
 async function distribute(){
+    baseNonce = await web3.eth.getTransactionCount(addressOfKey)
     const length = await voter.methods.length().call();
     if( length < 1 ){
         return red(`Stop: no gauges in Voter: ${process.env.CONTRACT}`);
+    }
+    if( running ){
+        return red(`Stop: already running`);
     }
     running = true;
     for (let i = 0; i < length; ++i) {
@@ -71,7 +81,8 @@ async function distribute(){
             const transaction = {
                 to: process.env.CONTRACT,
                 data: distroTx.encodeABI(),
-                gas: await distroTx.estimateGas()
+                gas: await distroTx.estimateGas(),
+                nonce: getNonce()
             };
             const signedTx = await web3.eth.accounts.signTransaction(transaction, process.env.PRIVATE_KEY_ADMIN);
             const tx = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
@@ -115,25 +126,24 @@ async function run(){
         return ;
     }
     const epoch = getEpoch(timestamp);
-    // yellow(`timestamp=${timestamp} epoch=${epoch}`);
+
     if( ! latestEpoch ){
         green(` - Initialize at epoch ${epoch}.`);
         latestEpoch = epoch;
+        //await distro();
     }else if( latestEpoch !== epoch ){
         yellow(`- epoch changed from ${latestEpoch} to ${epoch}. * RUN distro....`);
         await distro();
         latestEpoch = epoch;
-    }else{
-        //yellow(`- waiting epoch change...`);
     }
 }
 
-
+let addressOfKey;
 async function main() {
     if( ! process.env.CONTRACT ){
         return new Error(".env not found!");
     }else{
-        const addressOfKey = web3.eth.accounts.privateKeyToAccount(process.env.PRIVATE_KEY_ADMIN).address;
+        addressOfKey = web3.eth.accounts.privateKeyToAccount(process.env.PRIVATE_KEY_ADMIN).address;
         const balanceInWei = await web3.eth.getBalance(account);
         const balance = web3.utils.fromWei(balanceInWei, 'ether');
         blue(`Contract: ${process.env.CONTRACT}`);
