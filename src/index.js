@@ -37,17 +37,27 @@ web3.eth.defaultAccount = account;
 const voter_abi = JSON.parse(fs.readFileSync('voter-abi.js'));
 const voter = new web3.eth.Contract(voter_abi, process.env.CONTRACT);
 
+let baseNonce;
+let nonceOffset = 0;
+function getNonce() {
+    return baseNonce.then((nonce) => (nonce + (nonceOffset++)));
+}
+
+
 async function distro() {
+    baseNonce = web3.eth.getTransactionCount(addressOfKey);
     try{
         const distroTx = voter.methods.distro();
         const transaction = {
             to: process.env.CONTRACT,
             data: distroTx.encodeABI(),
-            gas: await distroTx.estimateGas()
+            gas: await distroTx.estimateGas(),
+            nonce: await getNonce()
         };
         const signedTx = await web3.eth.accounts.signTransaction(transaction, process.env.PRIVATE_KEY_ADMIN);
         const tx = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
         green(` OK - ${tx.transactionHash}`);
+        //console.log(transaction);
     }catch(e){
         red(e.toString());
         yellow(' - trying to run distribute() ...');
@@ -55,15 +65,9 @@ async function distro() {
     }
 }
 
-let baseNonce;
-let nonceOffset = 0;
-function getNonce() {
-    return baseNonce.then((nonce) => (nonce + (nonceOffset++)));
-}
-
 let running = false;
 async function distribute(){
-    baseNonce = await web3.eth.getTransactionCount(addressOfKey)
+
     const length = await voter.methods.length().call();
     if( length < 1 ){
         return red(`Stop: no gauges in Voter: ${process.env.CONTRACT}`);
@@ -130,7 +134,7 @@ async function run(){
     if( ! latestEpoch ){
         green(` - Initialize at epoch ${epoch}.`);
         latestEpoch = epoch;
-        //await distro();
+        await distro();
     }else if( latestEpoch !== epoch ){
         yellow(`- epoch changed from ${latestEpoch} to ${epoch}. * RUN distro....`);
         await distro();
