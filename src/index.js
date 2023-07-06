@@ -46,6 +46,7 @@ function getNonce() {
 
 async function distro() {
     baseNonce = web3.eth.getTransactionCount(addressOfKey);
+    return await distribute();
     try{
         const distroTx = voter.methods.distro();
         const transaction = {
@@ -76,6 +77,7 @@ async function distribute(){
         return red(`Stop: already running`);
     }
     running = true;
+    console.log(`Distributing rewards to ${length} gauges ...`);
     for (let i = 0; i < length; ++i) {
         const poolAddress = await voter.methods.pools(i).call();
         const gaugeAddress = await voter.methods.gauges(poolAddress).call();
@@ -134,7 +136,7 @@ async function run(){
     if( ! latestEpoch ){
         green(` - Initialize at epoch ${epoch}.`);
         latestEpoch = epoch;
-        //await distro();
+        await distro();
     }else if( latestEpoch !== epoch ){
         yellow(`- epoch changed from ${latestEpoch} to ${epoch}. * RUN distro....`);
         await distro();
