@@ -8,6 +8,7 @@ require('events').EventEmitter.defaultMaxListeners = 0;
 require('dotenv').config({path: '.env'});
 const fs = require('fs')
 const chalk = require('chalk');
+let running = false;
 
 const magenta = function () {
     console.log(chalk.magenta(...arguments))
@@ -35,6 +36,7 @@ const account = wallet.address;
 web3.eth.accounts.wallet.add(wallet);
 web3.eth.defaultAccount = account;
 const voter_abi = JSON.parse(fs.readFileSync('voter-abi.js'));
+const erc20_abi = JSON.parse(fs.readFileSync('ERC20_ABI.js'));
 const voter = new web3.eth.Contract(voter_abi, process.env.CONTRACT);
 
 let baseNonce;
@@ -45,60 +47,43 @@ function getNonce() {
 
 
 async function distro() {
-    baseNonce = web3.eth.getTransactionCount(addressOfKey);
-    return await distribute();
-    try{
-        const distroTx = voter.methods.distro();
-        const transaction = {
-            to: process.env.CONTRACT,
-            data: distroTx.encodeABI(),
-            gas: await distroTx.estimateGas(),
-            nonce: await getNonce()
-        };
-        const signedTx = await web3.eth.accounts.signTransaction(transaction, process.env.PRIVATE_KEY_ADMIN);
-        const tx = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
-        green(` OK - ${tx.transactionHash}`);
-        //console.log(transaction);
-    }catch(e){
-        red(e.toString());
-        yellow(' - trying to run distribute() ...');
-        await distribute();
-    }
-}
-
-let running = false;
-async function distribute(){
-
-    const length = await voter.methods.length().call();
-    if( length < 1 ){
-        return red(`Stop: no gauges in Voter: ${process.env.CONTRACT}`);
-    }
-    if( running ){
-        return red(`Stop: already running`);
-    }
+    if( running ) return red(`Stop: already running, waiting loop to finish...`);
     running = true;
-    console.log(`Distributing rewards to ${length} gauges ...`);
+    baseNonce = web3.eth.getTransactionCount(addressOfKey);
+    const length = await voter.methods.length().call();
+    yellow(`Running distro on ${length} gauges...`);
     for (let i = 0; i < length; ++i) {
-        const poolAddress = await voter.methods.pools(i).call();
-        const gaugeAddress = await voter.methods.gauges(poolAddress).call();
-        yellow(`${i} of ${length}) ${gaugeAddress}`);
         try {
-            const distroTx = voter.methods.distribute(gaugeAddress);
-            const transaction = {
-                to: process.env.CONTRACT,
-                data: distroTx.encodeABI(),
-                gas: await distroTx.estimateGas(),
-                nonce: getNonce()
-            };
-            const signedTx = await web3.eth.accounts.signTransaction(transaction, process.env.PRIVATE_KEY_ADMIN);
-            const tx = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
-            green(` - ${tx.transactionHash}`);
+            const poolAddress = await voter.methods.pools(i).call();
+            const pool = new web3.eth.Contract(erc20_abi, poolAddress);
+            const symbol = await pool.methods.symbol().call();
+            const gaugeAddress = await voter.methods.gauges(poolAddress).call();
+            await distribute(i, gaugeAddress, symbol);
         }catch(e){
-            red(` - ${e.toString()}`);
+            red(` - ${i} of ${length}) ${e.toString()}`);
         }
     }
     running = false;
 }
+
+
+async function distribute(i, gaugeAddress, symbol){
+    green(` - ${i+1}) [${symbol}] ${gaugeAddress}...`);
+    const distroTx = voter.methods.distribute(gaugeAddress);
+    const transaction = {
+        to: process.env.CONTRACT,
+        data: distroTx.encodeABI(),
+        nonce: getNonce()
+    };
+    try {
+        const signedTx = await web3.eth.accounts.signTransaction(transaction, process.env.PRIVATE_KEY_ADMIN);
+        const tx = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+        green(` - Done: ${tx.transactionHash}`);
+    }catch(e){
+        red(` - ${i+1} [${symbol}] ${gaugeAddress}: ${e.toString()}`);
+    }
+}
+
 
 const ONE_DAY = 86_400;
 const SEVEN_DAYS = 7 * ONE_DAY;
@@ -120,15 +105,12 @@ function getEpoch(currentTimeStamp) {
 
 let latestEpoch;
 async function run(){
-    if( running ){
-        return yellow('Running...');
-    }
     let timestamp;
     try {
         const r = await web3.eth.getBlock("latest");
         timestamp = r.timestamp;
     }catch(e){
-        red(`Stop: ${e.toString()}`)
+        red(`Stop (can't get last block): ${e.toString()}`)
         return ;
     }
     const epoch = getEpoch(timestamp);
@@ -136,9 +118,9 @@ async function run(){
     if( ! latestEpoch ){
         green(` - Initialize at epoch ${epoch}.`);
         latestEpoch = epoch;
-        await distro();
+        // await distro();
     }else if( latestEpoch !== epoch ){
-        yellow(`- epoch changed from ${latestEpoch} to ${epoch}. * RUN distro....`);
+        blue(`- epoch changed from ${latestEpoch} to ${epoch}. * RUN distro....`);
         await distro();
         latestEpoch = epoch;
     }
