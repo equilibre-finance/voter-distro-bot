@@ -136,7 +136,7 @@ async function run(){
     if( ! latestEpoch ){
         green(` - Initialize at epoch ${epoch}.`);
         latestEpoch = epoch;
-        await distro();
+        //await distro();
     }else if( latestEpoch !== epoch ){
         blue(`- epoch changed from ${latestEpoch} to ${epoch}. * RUN distro....`);
         await distro();
@@ -146,6 +146,8 @@ async function run(){
 
 let addressOfKey;
 async function main() {
+    // sleep 1day
+    //await new Promise((resolve) => setTimeout(resolve, ONE_DAY));
     // create cacheFile if not exists:
     if( ! fs.existsSync(cacheFile) )
         fs.writeFileSync(cacheFile, JSON.stringify({}, null, 2));
