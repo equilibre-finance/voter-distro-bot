@@ -73,7 +73,8 @@ async function distribute(i, gaugeAddress, symbol){
     const transaction = {
         to: process.env.CONTRACT,
         data: distroTx.encodeABI(),
-        nonce: getNonce()
+        nonce: getNonce(),
+        gas: await distroTx.estimateGas({from: account}),
     };
     try {
         const signedTx = await web3.eth.accounts.signTransaction(transaction, process.env.PRIVATE_KEY_ADMIN);
