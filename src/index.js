@@ -45,13 +45,17 @@ function getNonce() {
     return baseNonce.then((nonce) => (nonce + (nonceOffset++)));
 }
 
-
+let txCache = {};
 async function distro() {
     if( running ) return red(`Stop: already running, waiting loop to finish...`);
     running = true;
     baseNonce = web3.eth.getTransactionCount(addressOfKey);
     const length = await voter.methods.length().call();
     yellow(`Running distro on ${length} gauges...`);
+
+
+
+
     for (let i = 0; i < length; ++i) {
         try {
             const poolAddress = await voter.methods.pools(i).call();
@@ -69,17 +73,30 @@ async function distro() {
 
 async function distribute(i, gaugeAddress, symbol){
     green(` - ${i+1}) [${symbol}] ${gaugeAddress}...`);
+    txCache[latestEpoch] = txCache[latestEpoch] || {};
+
+    const tx = txCache[latestEpoch][gaugeAddress];
+    if( tx) return yellow(` -- Skip: ${tx}`);
+
     const distroTx = voter.methods.distribute(gaugeAddress);
+    // calculate gas price plus 10%
+    const gasPrice = await web3.eth.getGasPrice();
+    const gasPricePlus10 = web3.utils.toBN(gasPrice).mul(web3.utils.toBN(110)).div(web3.utils.toBN(100));
+
     const transaction = {
         to: process.env.CONTRACT,
         data: distroTx.encodeABI(),
         nonce: getNonce(),
         gas: await distroTx.estimateGas({from: account}),
+        gasPrice: gasPricePlus10,
     };
     try {
         const signedTx = await web3.eth.accounts.signTransaction(transaction, process.env.PRIVATE_KEY_ADMIN);
         const tx = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
-        green(` - Done: ${tx.transactionHash}`);
+        green(` -- Done: ${tx.transactionHash}`);
+
+        txCache[latestEpoch][gaugeAddress] = tx.transactionHash;
+        fs.writeFileSync('/src/tx.cache', JSON.stringify(txCache, null, 2));
     }catch(e){
         red(` - ${i+1} [${symbol}] ${gaugeAddress}: ${e.toString()}`);
     }
@@ -129,6 +146,9 @@ async function run(){
 
 let addressOfKey;
 async function main() {
+    // load tx cache by epoch to avoid running it again:
+    txCache = JSON.parse(fs.readFileSync('/src/tx.cache'));
+
     if( ! process.env.CONTRACT ){
         return new Error(".env not found!");
     }else{

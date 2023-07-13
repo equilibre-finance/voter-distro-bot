@@ -8,3 +8,5 @@ services:
     image: nodejs
     container_name: voter-distro
     restart: unless-stopped
+    volumes:
+      - ./src:/src
