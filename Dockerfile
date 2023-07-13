@@ -1,4 +1,7 @@
 FROM node:16
-#WORKDIR /src
-RUN cd /src && npm install
-CMD [ "node", "/src/index.js" ]
+WORKDIR /app
+
+COPY src /app
+
+RUN npm install
+CMD [ "node", "index.js" ]

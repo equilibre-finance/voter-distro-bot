@@ -9,4 +9,6 @@ services:
     container_name: voter-distro
     restart: unless-stopped
     volumes:
-      - ./src:/src:rw
+      - tmp:/tmp
+volumes:
+    tmp:

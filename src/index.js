@@ -9,7 +9,7 @@ require('dotenv').config({path: '.env'});
 const fs = require('fs')
 const chalk = require('chalk');
 let running = false;
-
+const cacheFile = '/tmp/tx.cache';
 const magenta = function () {
     console.log(chalk.magenta(...arguments))
 };
@@ -96,7 +96,7 @@ async function distribute(i, gaugeAddress, symbol){
         green(` -- Done: ${tx.transactionHash}`);
 
         txCache[latestEpoch][gaugeAddress] = tx.transactionHash;
-        fs.writeFileSync('/src/tx.cache', JSON.stringify(txCache, null, 2));
+        fs.writeFileSync(cacheFile, JSON.stringify(txCache, null, 2));
     }catch(e){
         red(` - ${i+1} [${symbol}] ${gaugeAddress}: ${e.toString()}`);
     }
@@ -147,7 +147,8 @@ async function run(){
 let addressOfKey;
 async function main() {
     // load tx cache by epoch to avoid running it again:
-    txCache = JSON.parse(fs.readFileSync('/src/tx.cache'));
+    txCache = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+    txCache = txCache || {};
 
     if( ! process.env.CONTRACT ){
         return new Error(".env not found!");
