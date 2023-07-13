@@ -146,6 +146,9 @@ async function run(){
 
 let addressOfKey;
 async function main() {
+    // create cacheFile if not exists:
+    if( ! fs.existsSync(cacheFile) )
+        fs.writeFileSync(cacheFile, JSON.stringify({}, null, 2));
     // load tx cache by epoch to avoid running it again:
     txCache = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
     txCache = txCache || {};
