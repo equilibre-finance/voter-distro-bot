@@ -9,4 +9,4 @@ services:
     container_name: voter-distro
     restart: unless-stopped
     volumes:
-      - ./src:/src
+      - ./src:/src:rw
