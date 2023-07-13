@@ -119,7 +119,7 @@ async function run(){
     if( ! latestEpoch ){
         green(` - Initialize at epoch ${epoch}.`);
         latestEpoch = epoch;
-        // await distro();
+        await distro();
     }else if( latestEpoch !== epoch ){
         blue(`- epoch changed from ${latestEpoch} to ${epoch}. * RUN distro....`);
         await distro();
