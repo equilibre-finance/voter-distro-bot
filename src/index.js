@@ -97,14 +97,14 @@ async function distribute(i, gaugeAddress, symbol){
         try {
             tx = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
             green(` -- Done: ${tx.transactionHash}`);
+            txCache[latestEpoch][gaugeAddress] = tx.transactionHash;
+            fs.writeFileSync(cacheFile, JSON.stringify(txCache, null, 2));
         }catch(e){
             // prevent nonce errors:
             nonceOffset--;
             red(` -- Failed: ${e.toString()}`);
             console.log(e);
         }
-        txCache[latestEpoch][gaugeAddress] = tx.transactionHash;
-        fs.writeFileSync(cacheFile, JSON.stringify(txCache, null, 2));
     }catch(e){
         red(` - ${i+1} [${symbol}] ${gaugeAddress}: ${e.toString()}`);
         console.log(e);
