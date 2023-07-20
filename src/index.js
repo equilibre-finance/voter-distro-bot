@@ -47,58 +47,67 @@ function getNonce() {
 
 let txCache = {};
 async function distro() {
-    if( running ) return red(`Stop: already running, waiting loop to finish...`);
-    running = true;
-    baseNonce = web3.eth.getTransactionCount(addressOfKey);
-    const length = await voter.methods.length().call();
-    yellow(`Running distro on ${length} gauges...`);
-
-
-
-
-    for (let i = 0; i < length; ++i) {
-        try {
-            const poolAddress = await voter.methods.pools(i).call();
-            const pool = new web3.eth.Contract(erc20_abi, poolAddress);
-            const symbol = await pool.methods.symbol().call();
-            const gaugeAddress = await voter.methods.gauges(poolAddress).call();
-            await distribute(i, gaugeAddress, symbol);
-        }catch(e){
-            red(` - ${i} of ${length}) ${e.toString()}`);
+    try {
+        if (running) return red(`Stop: already running, waiting loop to finish...`);
+        running = true;
+        baseNonce = web3.eth.getTransactionCount(addressOfKey);
+        const length = await voter.methods.length().call();
+        yellow(`Running distro on ${length} gauges...`);
+        for (let i = 0; i < length; ++i) {
+            try {
+                const poolAddress = await voter.methods.pools(i).call();
+                const pool = new web3.eth.Contract(erc20_abi, poolAddress);
+                const symbol = await pool.methods.symbol().call();
+                const gaugeAddress = await voter.methods.gauges(poolAddress).call();
+                await distribute(i, gaugeAddress, symbol);
+            } catch (e) {
+                red(` - ${i} of ${length}) ${e.toString()}`);
+                console.log(e);
+            }
         }
+        running = false;
+    }catch(e){
+        console.log(e);
+        running = false;
     }
-    running = false;
 }
 
 
 async function distribute(i, gaugeAddress, symbol){
     green(` - ${i+1}) [${symbol}] ${gaugeAddress}...`);
-    txCache[latestEpoch] = txCache[latestEpoch] || {};
-
-    const tx = txCache[latestEpoch][gaugeAddress];
-    if( tx) return yellow(` -- Skip: ${tx}`);
-
-    const distroTx = voter.methods.distribute(gaugeAddress);
-    // calculate gas price plus 10%
-    const gasPrice = await web3.eth.getGasPrice();
-    const gasPricePlus10 = web3.utils.toBN(gasPrice).mul(web3.utils.toBN(110)).div(web3.utils.toBN(100));
-
-    const transaction = {
-        to: process.env.CONTRACT,
-        data: distroTx.encodeABI(),
-        nonce: getNonce(),
-        gas: await distroTx.estimateGas({from: account}),
-        gasPrice: gasPricePlus10,
-    };
     try {
-        const signedTx = await web3.eth.accounts.signTransaction(transaction, process.env.PRIVATE_KEY_ADMIN);
-        const tx = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
-        green(` -- Done: ${tx.transactionHash}`);
+        txCache[latestEpoch] = txCache[latestEpoch] || {};
 
+        let tx = txCache[latestEpoch][gaugeAddress];
+        if( tx) return yellow(` -- Skip: ${tx}`);
+
+        const distroTx = voter.methods.distribute(gaugeAddress);
+        // calculate gas price plus 10%
+        const gasPrice = await web3.eth.getGasPrice();
+        const gasPricePlus10 = web3.utils.toBN(gasPrice).mul(web3.utils.toBN(110)).div(web3.utils.toBN(100));
+
+        const transaction = {
+            to: process.env.CONTRACT,
+            data: distroTx.encodeABI(),
+            nonce: getNonce(),
+            gas: await distroTx.estimateGas({from: account}),
+            gasPrice: gasPricePlus10,
+        };
+        const signedTx = await web3.eth.accounts.signTransaction(transaction, process.env.PRIVATE_KEY_ADMIN);
+        try {
+            tx = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+            green(` -- Done: ${tx.transactionHash}`);
+        }catch(e){
+            // prevent nonce errors:
+            nonceOffset--;
+            red(` -- Failed: ${e.toString()}`);
+            console.log(e);
+        }
         txCache[latestEpoch][gaugeAddress] = tx.transactionHash;
         fs.writeFileSync(cacheFile, JSON.stringify(txCache, null, 2));
     }catch(e){
         red(` - ${i+1} [${symbol}] ${gaugeAddress}: ${e.toString()}`);
+        console.log(e);
     }
 }
 
@@ -132,15 +141,14 @@ async function run(){
         return ;
     }
     const epoch = getEpoch(timestamp);
-
     if( ! latestEpoch ){
         green(` - Initialize at epoch ${epoch}.`);
         latestEpoch = epoch;
-        //await distro();
+        await distro();
     }else if( latestEpoch !== epoch ){
         blue(`- epoch changed from ${latestEpoch} to ${epoch}. * RUN distro....`);
-        await distro();
         latestEpoch = epoch;
+        await distro();
     }
 }
 
