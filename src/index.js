@@ -94,20 +94,15 @@ async function distribute(i, gaugeAddress, symbol){
             gasPrice: gasPricePlus10,
         };
         const signedTx = await web3.eth.accounts.signTransaction(transaction, process.env.PRIVATE_KEY_ADMIN);
-        try {
-            tx = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
-            green(` -- Done: ${tx.transactionHash}`);
-            txCache[latestEpoch][gaugeAddress] = tx.transactionHash;
-            fs.writeFileSync(cacheFile, JSON.stringify(txCache, null, 2));
-        }catch(e){
-            // prevent nonce errors:
-            nonceOffset--;
-            red(` -- Failed: ${e.toString()}`);
-            console.log(e);
-        }
+
+        tx = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+        green(` -- Done: ${tx.transactionHash}`);
+        txCache[latestEpoch][gaugeAddress] = tx.transactionHash;
+        fs.writeFileSync(cacheFile, JSON.stringify(txCache, null, 2));
+
     }catch(e){
-        red(` - ${i+1} [${symbol}] ${gaugeAddress}: ${e.toString()}`);
-        console.log(e);
+        nonceOffset--;
+        red(` -- ${i+1} [${symbol}] ${gaugeAddress}: ${e.toString()}`);
     }
 }
 
