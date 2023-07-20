@@ -102,6 +102,7 @@ async function distro() {
         }
         running = false;
         yellow(`**distro ran on ${length} gauges.**`);
+        blue(`**we are on epoch ${latestEpoch}**`);
     }catch(e){
         red(`Distro: ${e.toString()}`);
         running = false;
@@ -117,7 +118,7 @@ async function distribute(i, gaugeAddress, symbol){
         let tx = txCache[latestEpoch][gaugeAddress];
         if( tx){
             yellow(` -- Skip: ${tx}`);
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            await new Promise((resolve) => setTimeout(resolve, 2000));
             return;
         }
 
