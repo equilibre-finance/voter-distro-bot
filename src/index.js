@@ -88,7 +88,7 @@ async function distro() {
         running = true;
         baseNonce = web3.eth.getTransactionCount(addressOfKey);
         const length = await voter.methods.length().call();
-        yellow(`Running distro on ${length} gauges...`);
+        yellow(`**Running distro on ${length} gauges...**`);
         for (let i = 0; i < length; ++i) {
             try {
                 const poolAddress = await voter.methods.pools(i).call();
@@ -97,10 +97,11 @@ async function distro() {
                 const gaugeAddress = await voter.methods.gauges(poolAddress).call();
                 await distribute(i, gaugeAddress, symbol);
             } catch (e) {
-                red(` - ${i} of ${length}) ${e.toString()}`);
+                red(` ${i} of ${length}) ${e.toString()}`);
             }
         }
         running = false;
+        yellow(`**distro ran on ${length} gauges.**`);
     }catch(e){
         red(`Distro: ${e.toString()}`);
         running = false;
@@ -109,7 +110,7 @@ async function distro() {
 
 
 async function distribute(i, gaugeAddress, symbol){
-    green(` - ${i+1}) [${symbol}] ${gaugeAddress}...`);
+    green(`${i+1}) [${symbol}] ${gaugeAddress}...`);
     try {
         txCache[latestEpoch] = txCache[latestEpoch] || {};
 
