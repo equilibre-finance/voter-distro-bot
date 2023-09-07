@@ -89,17 +89,23 @@ async function distro() {
         baseNonce = web3.eth.getTransactionCount(addressOfKey);
         const length = await voter.methods.length().call();
         yellow(`**Running distro on ${length} gauges...**`);
+        let promisses = [];
         for (let i = 0; i < length; ++i) {
             try {
                 const poolAddress = await voter.methods.pools(i).call();
                 const pool = new web3.eth.Contract(erc20_abi, poolAddress);
                 const symbol = await pool.methods.symbol().call();
                 const gaugeAddress = await voter.methods.gauges(poolAddress).call();
-                await distribute(i, gaugeAddress, symbol);
+                const p = new Promise( async (resolve) => {
+                    await distribute(i, gaugeAddress, symbol);
+                    resolve();
+                } );
+                promisses.push(p);
             } catch (e) {
                 red(` ${i} of ${length}) ${e.toString()}`);
             }
         }
+        await Promise.all(promisses);
         running = false;
         yellow(`**distro ran on ${length} gauges.**`);
         blue(`**we are on epoch ${latestEpoch}**`);
