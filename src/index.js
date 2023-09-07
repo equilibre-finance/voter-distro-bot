@@ -148,7 +148,8 @@ async function distribute(i, gaugeAddress, symbol){
         fs.writeFileSync(cacheFile, JSON.stringify(txCache, null, 2));
 
     }catch(e){
-        nonceOffset--;
+        nonceOffset = 0;
+        baseNonce = web3.eth.getTransactionCount(addressOfKey);
         red(` -- ${i+1} [${symbol}] ${gaugeAddress}: ${e.toString()}`);
     }
 }
