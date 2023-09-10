@@ -12,5 +12,10 @@
     "ethers": "^5.7.2",
     "web3": "^1.8.1",
     "web3-eth-accounts": "^1.8.1"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon --exec \"npm run start\"",
+    "fork": "cd ../../contracts && npx hardhat node --fork https://evm.data.equilibre.kava.io/ --fork-block-number 6368080"
   }
 }
