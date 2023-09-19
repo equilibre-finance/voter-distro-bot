@@ -137,6 +137,7 @@ async function distroInBatch() {
         nonceOffset = 0;
         baseNonce = web3.eth.getTransactionCount(addressOfKey);
         red(`Distro: ${e.toString()}`);
+        console.log(e);
         running = false;
         /// @dev return false to indicate that the batch failed, and we need to run in safe mode:
         return false;
@@ -166,7 +167,7 @@ async function distroByGauge() {
         yellow(`**distro ran on ${length} gauges.**`);
         blue(`**we are on epoch ${latestEpoch}**`);
     } catch (e) {
-        red(`Distro: ${e.toString()}`);
+        red(`distroByGauge: ${e.toString()}`);
         running = false;
     }
 }
