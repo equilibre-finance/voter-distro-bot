@@ -375,7 +375,7 @@ async function app(onWindows) {
     voter = new web3.eth.Contract(voter_abi, process.env.VOTER);
     minter = new web3.eth.Contract(minter_abi, process.env.MINTER);
     ve = new web3.eth.Contract(ve_abi, process.env.VE);
-    multicallInit(web3, process.env.multicall);
+    multicallInit(web3, process.env.MULTICALL);
 
     /// @dev check if the rpc is working:
     try {
