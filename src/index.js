@@ -1,4 +1,13 @@
 'use strict';
+process.on('uncaughtException', function (err) {
+        console.error('[uncaughtException]', err);
+        // process.exit(0);
+    }
+);
+process.setMaxListeners(0);
+require('events').EventEmitter.defaultMaxListeners = 0;
+require('dotenv').config({path: '.env'});
+
 const {discordApp, discordStatus, discordSend} = require('./discord');
 const {cacheInit, yellow, red, blue, green, getTxCache, cacheSave, set, get, currency} = require('./stdlib');
 const {multicallInit, multicall, call} = require('./multicall');
@@ -393,16 +402,11 @@ async function app(onWindows) {
 }
 
 async function main() {
-    process.on('uncaughtException', function (err) {
-            console.error('[uncaughtException]', err);
-            // process.exit(0);
-        }
-    );
-    process.setMaxListeners(0);
-    require('events').EventEmitter.defaultMaxListeners = 0;
-    require('dotenv').config({path: '.env'});
     const onWindows = process.platform === "win32";
-
+    if( ! process.env.DISCORD_TOKEN) {
+        red(`DISCORD_TOKEN not found, discord bot disabled.`);
+        return;
+    }
     cacheInit(onWindows, discordSend);
 
     if (onWindows) {
