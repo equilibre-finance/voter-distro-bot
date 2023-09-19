@@ -1,7 +1,3 @@
-FROM node:16
+FROM node:20
 WORKDIR /app
-
-COPY src /app
-
-RUN npm install
-CMD [ "node", "index.js" ]
+CMD [ "npm", "start" ]

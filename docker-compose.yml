@@ -14,5 +14,6 @@ services:
     restart: unless-stopped
     volumes:
       - tmp:/tmp
+      - ./src:/app:rw
 volumes:
     tmp:

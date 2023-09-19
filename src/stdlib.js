@@ -1,32 +1,32 @@
 'use strict';
 let onWindows;
-const chalk = require('chalk');
+const colors = require('colors');
 const {bold, codeBlock, blockQuote, italic} = require('discord.js');
 let discordSend;
 const fs = require("fs");
 const Web3 = require('web3');
 const magenta = function () {
-    console.log(chalk.magenta(...arguments))
+    console.log(colors.magenta(...arguments))
     discordSend(bold(...arguments));
 };
 const cyan = function () {
-    console.log(chalk.cyan(...arguments))
+    console.log(colors.cyan(...arguments))
     discordSend(bold(...arguments));
 };
 const yellow = function () {
-    console.log(chalk.yellow(...arguments))
+    console.log(colors.yellow(...arguments))
     discordSend(blockQuote(...arguments));
 };
 const red = function () {
-    console.log(chalk.red(...arguments))
+    console.log(colors.red(...arguments))
     discordSend(codeBlock(...arguments));
 };
 const blue = function () {
-    console.log(chalk.blue(...arguments))
+    console.log(colors.blue(...arguments))
     discordSend(italic(...arguments));
 };
 const green = function () {
-    console.log(chalk.green(...arguments))
+    console.log(colors.green(...arguments))
     discordSend(...arguments);
 };
 

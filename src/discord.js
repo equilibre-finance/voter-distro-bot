@@ -2,7 +2,6 @@
 let onWindows = process.platform === "win32";
 const {magenta, cyan, yellow, red, blue, green} = require('./stdlib');
 const {Client, GatewayIntentBits, ActivityType} = require('discord.js');
-const chalk = require('chalk');
 const discordConfig = {
     intents: [
         GatewayIntentBits.Guilds,
@@ -13,8 +12,9 @@ const discord = new Client(discordConfig);
 let discordReady = false, discordChannel;
 const discordToken = process.env.DISCORD_TOKEN;
 const discordChannelId = process.env.DISCORD_CHANNEL_ID;
-
+let DISCORD_NOTIFICATION_ENABLED = process.env.DISCORD_NOTIFICATION_ENABLED === 'true';
 async function discordSend(msg) {
+    if (!DISCORD_NOTIFICATION_ENABLED) return;
     if (!msg) return;
     if (onWindows) return;
     if (discordReady) {
@@ -27,6 +27,7 @@ async function discordSend(msg) {
 }
 
 function discordStatus(msg) {
+    if (!DISCORD_NOTIFICATION_ENABLED) return;
     if (!msg) return;
     if (onWindows)
         return console.log(msg);
@@ -37,8 +38,15 @@ function discordStatus(msg) {
 }
 
 async function discordApp(callback, _onWindows) {
+    if (!DISCORD_NOTIFICATION_ENABLED){
+        yellow(`Discord: [STOP] DISCORD_NOTIFICATION_ENABLED is false`);
+        callback();
+        return;
+    }
+    onWindows = _onWindows;
     if (onWindows) {
         yellow(`Discord: [STOP] running on windows`);
+        callback();
         return;
     }
 

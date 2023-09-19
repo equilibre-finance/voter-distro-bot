@@ -41,6 +41,7 @@ async function distroInBatch() {
     let tx = get(epochId);
     if (tx) {
         yellow(`Skip: distro already ran on epoch ${latestEpoch}`);
+        blue(` -- ${tx}`);
         return true;
     }
 
@@ -263,19 +264,19 @@ async function run() {
 async function setup() {
 
     let length = await voter.methods.length().call();
-        length = parseInt( length.toString()) || 0;
+    length = parseInt(length.toString()) || 0;
     if (!length || length === 0) {
         red(`STOP: no gauges found!`);
         process.exit(0);
     }
     const cachedLength = get('length') || 0;
     if (cachedLength > 0 && cachedLength === length) {
-        yellow(`Skipped setup, using cached data...`);
         allGauges = get('allGauges') || [];
         activeGauges = get('activeGauges') || {};
-        if( !activeGauges || !allGauges){
-            red(`STOP: cache is corrupted!`);
-        }else {
+        if (allGauges.length === 0 || Object.keys(activeGauges).length === 0) {
+            red(`WARNING: cache is corrupted!`);
+        } else {
+            yellow(`Skipped setup, using cached data..., ${length} gauges, allGauges: ${allGauges.length}, activeGauges: ${Object.keys(activeGauges).length}`);
             return;
         }
     }
@@ -409,7 +410,7 @@ async function app(onWindows) {
 
 async function main() {
     const onWindows = process.platform === "win32";
-    if( ! process.env.DISCORD_TOKEN) {
+    if (!process.env.DISCORD_TOKEN) {
         red(`DISCORD_TOKEN not found, discord bot disabled.`);
         return;
     }
