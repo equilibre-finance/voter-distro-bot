@@ -43,6 +43,7 @@ async function cmd(fctl) {
             return await fctl.call();
         } catch (e) {
             console.log(`cmd-error ${fctl._method.name}() ${retryCount}/10: ${e.toString()}`);
+            console.log(e);
         }
         await new Promise(resolve => setTimeout(resolve, 10000));
         if( retryCount >= 10 )
