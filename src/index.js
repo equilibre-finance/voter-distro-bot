@@ -262,17 +262,22 @@ async function run() {
 
 async function setup() {
 
-    const length = parseInt((await voter.methods.length().call()).toString());
-    if (length === 0) {
+    let length = await voter.methods.length().call();
+        length = parseInt( length.toString());
+    if (!length || length === 0) {
         red(`STOP: no gauges found!`);
         process.exit(0);
     }
     const cachedLength = get('length');
-    if (cachedLength && cachedLength === length) {
+    if (cachedLength > 0 && cachedLength === length) {
         yellow(`Skipped setup, using cached data...`);
         allGauges = get('allGauges');
         activeGauges = get('activeGauges');
-        return;
+        if( !activeGauges || !allGauges){
+            red(`STOP: cache is corrupted!`);
+        }else {
+            return;
+        }
     }
     set('length', length);
     yellow(`Setup ${length} gauges...`);
