@@ -15,6 +15,7 @@
     "web3-eth-accounts": "^1.8.1"
   },
   "scripts": {
+    "prod": "node index.js",
     "start": "npm i && nodemon --legacy-watch --ignore node_modules --watch . index.js"
   }
 }
