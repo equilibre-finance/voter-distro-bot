@@ -6,7 +6,10 @@ process.on('uncaughtException', function (err) {
 );
 process.setMaxListeners(0);
 require('events').EventEmitter.defaultMaxListeners = 0;
-require('dotenv').config({path: '.env'});
+
+const dotenvFile = process.env.DOTENV_FILE || '.env';
+
+require('dotenv').config({path: dotenvFile});
 
 const {discordApp, discordStatus, discordSend} = require('./discord');
 const {cacheInit, yellow, red, blue, green, getTxCache, cacheSave, set, get, currency} = require('./stdlib');
