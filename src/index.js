@@ -251,12 +251,12 @@ async function run() {
     if (!latestEpoch) {
         green(` - Initialize at epoch ${epoch}.`);
         latestEpoch = epoch;
-        if (!await distroInBatch())
+        //if (!await distroInBatch())
             await distroByGauge();
     } else if (latestEpoch !== epoch) {
         blue(`- epoch changed from ${latestEpoch} to ${epoch}. * RUN distro....`);
         latestEpoch = epoch;
-        if (!await distroInBatch())
+        //if (!await distroInBatch())
             await distroByGauge();
     }
 }

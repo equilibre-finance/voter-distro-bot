@@ -1,0 +1,21 @@
+# @format
+
+version: '3'
+
+services:
+    voter-distro:
+        build:
+            context: .
+            dockerfile: dockerfile
+        environment:
+            DEBUG_COLORS: 'true'
+            TERM: xterm-256color
+            COLORTERM: truecolor
+        image: nodejs
+        container_name: voter-distro
+        restart: unless-stopped
+        volumes:
+            - tmp:/tmp
+            - ./src:/app:rw
+volumes:
+    tmp:
